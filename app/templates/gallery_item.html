@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ ref }} — FAX-BOT INDUSTRIES PUBLIC GALLERY</title>
+  <meta property="og:title" content="Correspondence {{ ref }} — Fax-Bot Industries">
+  <meta property="og:description" content="An exchange with the world's slowest chatbot. Fax {{ fax_number_pretty }}.">
+  {% if tx_pages %}<meta property="og:image" content="{{ base_url }}/gallery-media/{{ slug }}/tx_1.png">{% endif %}
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #d8d3c5; font-family: "Courier New", Courier, monospace; color: #1a1a1a;
+           padding: 40px 16px; }
+    .wrap { max-width: 1080px; margin: 0 auto; }
+    header { text-align: center; border: 3px double #1a1a1a; background: #efeadb;
+             padding: 22px 16px; box-shadow: 4px 4px 0 rgba(0,0,0,.25); }
+    header h1 { font-size: clamp(16px, 3.5vw, 24px); letter-spacing: 4px; }
+    header .ref { margin-top: 8px; font-size: 12px; letter-spacing: 2px; }
+    a.back { display: inline-block; margin: 18px 0 4px; color: inherit; font-size: 12px;
+             letter-spacing: 1px; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; }
+    @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+    .col h2 { font-size: 12px; letter-spacing: 3px; text-align: center; background: #1a1a1a;
+              color: #efeadb; padding: 8px 0; }
+    .col img { width: 100%; display: block; border: 1px solid #1a1a1a; margin-top: 14px;
+               box-shadow: 3px 3px 0 rgba(0,0,0,.2); transform: rotate(-.3deg); }
+    .col.tx img { transform: rotate(.3deg); }
+    .none { text-align: center; font-size: 11px; padding: 30px 0; letter-spacing: 1px; }
+    footer { margin-top: 34px; text-align: center; font-size: 10px; letter-spacing: 1px;
+             line-height: 1.8; color: #444; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>FAX-BOT INDUSTRIES</h1>
+    <div class="ref">PUBLIC GALLERY — CORRESPONDENCE {{ ref }}, EXCHANGE NO. {{ exchange_no }}</div>
+  </header>
+  <a class="back" href="/gallery">&larr; RETURN TO THE GALLERY</a>
+  <div class="cols">
+    <div class="col rx">
+      <h2>RECEIVED FROM CORRESPONDENT</h2>
+      {% if in_pages %}
+        {% for i in range(1, in_pages + 1) %}
+        <img src="/gallery-media/{{ slug }}/in_{{ i }}.png" alt="Inbound fax, page {{ i }}" loading="lazy">
+        {% endfor %}
+      {% else %}
+        <div class="none">ORIGINAL RETIRED TO THE ARCHIVE, AS IS PROPER.</div>
+      {% endif %}
+    </div>
+    <div class="col tx">
+      <h2>TRANSMITTED BY FAX-BOT</h2>
+      {% for i in range(1, tx_pages + 1) %}
+      <img src="/gallery-media/{{ slug }}/tx_{{ i }}.png" alt="Fax-Bot reply, page {{ i }}" loading="lazy">
+      {% endfor %}
+    </div>
+  </div>
+  <footer>
+    PUBLISHED WITH THE CORRESPONDENT'S WRITTEN CONSENT.<br>
+    JOIN THE CORRESPONDENCE: FAX {{ fax_number_pretty }}.
+    THE DELAY IS THE SERVICE.<br>
+    <a href="/privacy">PRIVACY POLICY</a>
+  </footer>
+</div>
+</body>
+</html>

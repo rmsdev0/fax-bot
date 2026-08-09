@@ -1,0 +1,33 @@
+<style>
+  @page { size: letter; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Courier New", Courier, monospace;
+    width: 8.5in; height: 11in;
+    padding: 0.75in;
+    color: #111;
+  }
+  .frame { border: 1px solid #111; height: 100%; padding: 0.45in; position: relative; }
+  .header { display: flex; justify-content: space-between; font-size: 11px;
+            letter-spacing: 1px; border-bottom: 2px solid #111; padding-bottom: 8px; font-weight: bold; }
+  .body {
+    margin-top: 26px; font-size: 13px; line-height: 1.75;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  .footer {
+    position: absolute; bottom: 0.4in; left: 0.45in; right: 0.45in;
+    border-top: 1px solid #111; padding-top: 8px;
+    font-size: 10px; text-align: center; letter-spacing: 1px;
+  }
+</style>
+<div class="frame">
+  <div class="header">
+    <span>FAX-BOT INDUSTRIES</span>
+    <span>REF. {{ ref_number }}</span>
+    <span>SHEET {{ sheet }} OF {{ sheets }}</span>
+  </div>
+  <div class="body">{{ body }}</div>
+  <div class="footer">
+    REPLY BY FAX: {{ fax_number }} &nbsp;|&nbsp; QUOTE REF. {{ ref_number }}
+  </div>
+</div>

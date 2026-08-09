@@ -1,0 +1,23 @@
+# The image needs app/, alembic/, pyproject.toml, uv.lock, alembic.ini, start.sh
+# — everything else stays out of the build context.
+.env
+.git/
+.gitignore
+.github/
+.venv/
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+tests/
+docs/
+scripts/
+infra/
+.claude/
+.idea/
+*.md
+docker-compose.yml
+.dockerignore
+Dockerfile

@@ -1,0 +1,12 @@
+# Copy to terraform.tfvars and fill in. No secrets belong in this file —
+# app secrets go to SSM via scripts/put_aws_secrets.sh.
+
+region            = "us-east-1"
+profile           = "default" # AWS CLI profile from `aws configure sso`
+domain            = "fax-bot.example.com"
+route53_zone_name = "example.com"
+
+# Telnyx fax application + numbers (not secrets, but operator-specific)
+telnyx_connection_id = "1234567890"
+fax_bot_number       = "+1XXXXXXXXXX"
+test_fax_number      = "" # optional loop-guard test number
