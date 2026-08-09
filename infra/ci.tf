@@ -34,7 +34,7 @@ data "aws_iam_policy_document" "ci_assume" {
       # name-squatting a deleted repo.
       values = [
         "repo:${var.github_repo}:*",
-        "repo:rmsdev0@8891128/fax-bot@1326091328:*",
+        "repo:rmsdev0@8891128/fax-bot@1328302747:*",
       ]
     }
   }
