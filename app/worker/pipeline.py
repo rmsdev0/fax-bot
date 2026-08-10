@@ -147,8 +147,12 @@ def _ensure_ref(session, thread: Thread) -> None:
 
 
 def _apply_removal(session, settings, thread: Thread) -> None:
-    """Honor a REMOVE request: withdraw gallery items, purge stored PDFs,
-    and stamp the thread so /admin/recent shows the request."""
+    """Honor a REMOVE request: withdraw gallery items, purge stored PDFs and
+    transcripts, and stamp the thread so /admin/recent shows the request.
+
+    The fax number, reference number, and delivery statuses survive — they
+    are what lets us keep honoring the removal (and any STOP) afterward.
+    """
     from app import gallery as gallery_mod
     from app.models import GalleryItem
     from app.worker import retention
@@ -163,8 +167,14 @@ def _apply_removal(session, settings, thread: Thread) -> None:
     for item in items:
         gallery_mod.unpublish(session, settings, item)
     purged = retention.purge_thread(session, settings, thread.id)
+    # "Purge the record" means the content, not just the page images: the
+    # summaries and reply texts derive from the fax the sender regrets.
+    for fax in session.scalars(select(InboundFax).where(InboundFax.thread_id == thread.id)).all():
+        fax.inbound_summary = None
+        fax.reply_body = None
     logger.info(
-        "removal request on thread %s: %d gallery item(s) withdrawn, %d file(s) purged",
+        "removal request on thread %s: %d gallery item(s) withdrawn, %d file(s) purged, "
+        "transcripts cleared",
         thread.ref_number,
         len(items),
         purged,

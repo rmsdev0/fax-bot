@@ -3,7 +3,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app import telnyx_client
 from app.config import Settings, get_settings
@@ -98,41 +98,83 @@ def handle_failure(session, outbound: OutboundFax, failure_reason: str | None) -
     session.commit()
 
 
+def _recover_stale_retrying(session, settings: Settings) -> None:
+    """A crash between claiming a retry and recording its result leaves the
+    row in 'retrying'. Requeue it once the stale window passes — the attempt
+    was already counted at claim time, so a crash-after-send costs at most
+    one duplicate and still marches toward the attempt cap."""
+    cutoff = datetime.now(UTC) - timedelta(seconds=settings.stale_processing_seconds)
+    stale = session.scalars(
+        select(OutboundFax).where(OutboundFax.status == "retrying", OutboundFax.updated_at < cutoff)
+    ).all()
+    for outbound in stale:
+        exhausted = outbound.attempts > len(settings.retry_backoff_seconds)
+        outbound.status = "failed_permanent" if exhausted else "retry_scheduled"
+        outbound.next_retry_at = None if exhausted else datetime.now(UTC)
+        logger.warning(
+            "stale retrying row %d (attempts=%d) -> %s",
+            outbound.id,
+            outbound.attempts,
+            outbound.status,
+        )
+    if stale:
+        session.commit()
+
+
 def process_retries() -> int:
     """Re-send any outbound faxes whose backoff has elapsed."""
     settings = get_settings()
     session_factory = get_sessionmaker()
     resent = 0
     with session_factory() as session:
-        # Retries are real sends: they respect the breaker and count toward
-        # the daily cap (via outbound_attempts) exactly like first sends.
-        reason = breaker_tripped(session, settings)
-        if reason:
-            logger.warning("circuit breaker: %s — retries stay scheduled", reason)
-            return 0
-        due = session.scalars(
-            select(OutboundFax).where(
+        _recover_stale_retrying(session, settings)
+        due_ids = session.scalars(
+            select(OutboundFax.id).where(
                 OutboundFax.status == "retry_scheduled",
                 OutboundFax.next_retry_at <= datetime.now(UTC),
             )
         ).all()
-        for outbound in due:
+        for outbound_id in due_ids:
+            # Retries are real sends: each one re-checks the breaker and the
+            # daily cap (counted via outbound_attempts) before dialing.
+            reason = breaker_tripped(session, settings)
+            if reason:
+                logger.warning("circuit breaker: %s — retries stay scheduled", reason)
+                break
+            # Atomic claim: the attempt is spent at claim time, so neither a
+            # concurrent worker nor a crash can turn one retry into many.
+            claimed = session.execute(
+                update(OutboundFax)
+                .where(OutboundFax.id == outbound_id, OutboundFax.status == "retry_scheduled")
+                .values(status="retrying", attempts=OutboundFax.attempts + 1)
+            ).rowcount
+            session.commit()
+            if claimed != 1:
+                continue
+            outbound = session.get(OutboundFax, outbound_id)
             try:
                 new_fax_id = telnyx_client.send_fax(
                     settings, to=outbound.to_number, media_url=outbound.media_url
                 )
             except Exception:
                 logger.exception("retry send failed for %s", outbound.to_number)
+                exhausted = outbound.attempts > len(settings.retry_backoff_seconds)
+                outbound.status = "failed_permanent" if exhausted else "retry_scheduled"
+                outbound.next_retry_at = (
+                    None
+                    if exhausted
+                    else datetime.now(UTC) + timedelta(seconds=settings.retry_backoff_seconds[0])
+                )
+                session.commit()
                 continue
             logger.info(
                 "retry attempt %d for %s: fax %s (was %s)",
-                outbound.attempts + 1,
+                outbound.attempts,
                 outbound.to_number,
                 new_fax_id,
                 outbound.fax_id,
             )
             outbound.fax_id = new_fax_id
-            outbound.attempts += 1
             outbound.status = "queued"
             outbound.next_retry_at = None
             session.add(

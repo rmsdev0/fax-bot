@@ -104,9 +104,12 @@ class OutboundFax(Base):
     fax_id: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
     thread_id: Mapped[int | None] = mapped_column(ForeignKey("threads.id"), nullable=True)
     to_number: Mapped[str] = mapped_column(String, index=True)
-    reply_to_fax_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Unique: one reply row per inbound fax, enforced by the DB so a racing
+    # duplicate insert fails loudly instead of double-sending (send_reply).
+    reply_to_fax_id: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
     media_url: Mapped[str] = mapped_column(String)
-    # pending_send -> queued -> sending -> delivered | retry_scheduled -> ... | failed_permanent
+    # pending_send -> queued -> sending -> delivered
+    #   | retry_scheduled -> retrying -> queued -> ... | failed_permanent
     status: Mapped[str] = mapped_column(String, default="queued")
     failure_reason: Mapped[str | None] = mapped_column(String, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0)  # Telnyx sends performed

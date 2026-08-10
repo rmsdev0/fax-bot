@@ -106,7 +106,7 @@ def serve_media(name: str):
     return FileResponse(path, media_type="application/pdf")
 
 
-PRIVACY_REVISED = "08 AUGUST 2026"  # bump when the policy text changes
+PRIVACY_REVISED = "10 AUGUST 2026"  # bump when the policy text changes
 
 
 @app.get("/privacy", response_class=HTMLResponse)

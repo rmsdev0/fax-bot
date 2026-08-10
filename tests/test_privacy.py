@@ -132,6 +132,11 @@ def test_remove_request_unpublishes_and_purges(client, monkeypatch, tmp_path):
     faxes = {f.fax_id: f for f in _get_all(InboundFax)}
     assert faxes["r1"].pdf_path is None
     assert faxes["r2"].pdf_path is None
+    # "The record" includes the derived content, not just the page images.
+    assert faxes["r1"].inbound_summary is None
+    assert faxes["r1"].reply_body is None
+    assert faxes["r2"].inbound_summary is None
+    assert faxes["r2"].reply_body is None
     # The request is stamped for the admin view.
     (thread,) = _get_all(Thread)
     assert thread.removal_requested_at is not None

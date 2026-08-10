@@ -67,8 +67,12 @@ resource "aws_db_instance" "main" {
   vpc_security_group_ids  = [aws_security_group.rds.id]
   publicly_accessible     = false
   backup_retention_period = 7
-  skip_final_snapshot     = true
-  apply_immediately       = true
+  # This DB holds phone numbers and correspondence: encrypted at rest, and
+  # protected from accidental terraform/console deletion.
+  storage_encrypted   = true
+  deletion_protection = true
+  skip_final_snapshot = true
+  apply_immediately   = true
 }
 
 # The composed DATABASE_URL. random_password already lives in TF state, so

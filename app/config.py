@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -63,7 +63,11 @@ class Settings(BaseSettings):
         return self.data_dir / "gallery"
 
     # Infrastructure
-    database_url: str = "postgresql+psycopg://faxbot:faxbot@localhost:5432/faxbot"
+    # repr=False: the prod DSN embeds the DB password — keep it out of
+    # settings reprs just like the SecretStr fields.
+    database_url: str = Field(
+        default="postgresql+psycopg://faxbot:faxbot@localhost:5432/faxbot", repr=False
+    )
     data_dir: Path = Path("data")
 
     @property

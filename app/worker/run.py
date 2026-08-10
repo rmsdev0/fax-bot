@@ -21,6 +21,11 @@ PURGE_INTERVAL_SECONDS = 3600
 def main() -> None:
     settings = get_settings()
     init_db()
+    # Fail fast if the persona file didn't make it into this environment,
+    # rather than on the first model-backed fax.
+    from app.worker.brain import _persona
+
+    _persona()
     logger.info(
         "worker up: model=%s page_cap=%d poll=%.1fs ani_cap=%d/day budget=$%.0f/day",
         settings.anthropic_model,

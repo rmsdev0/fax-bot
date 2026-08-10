@@ -467,3 +467,129 @@ def test_transient_failure_heals_on_a_later_cycle(pipeline_env, monkeypatch):
     (fax,) = _get_all(InboundFax)
     assert fax.status == "replied"
     assert fax.attempts == 2
+
+
+# ---------- retry claiming, per-send caps, stale-retrying recovery ----------
+
+
+def test_retry_cap_enforced_per_send_within_batch(pipeline_env, monkeypatch):
+    from app.db import get_sessionmaker
+    from app.models import OutboundFax
+    from app.worker import delivery
+
+    monkeypatch.setenv("DAILY_OUTBOUND_FAX_CAP", "1")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+
+    with get_sessionmaker()() as session:
+        for i in (1, 2):
+            session.add(
+                OutboundFax(
+                    fax_id=f"batch-{i}",
+                    to_number=f"+1555222000{i}",
+                    media_url=f"https://faxbot.test/media/reply_{i}.pdf",
+                    attempts=1,
+                    status="retry_scheduled",
+                    next_retry_at=datetime.now(UTC) - timedelta(seconds=5),
+                )
+            )
+        session.commit()
+
+    # First retry fills the cap; the second must NOT send in the same batch.
+    assert delivery.process_retries() == 1
+    statuses = sorted(f.status for f in _get_all(OutboundFax))
+    assert statuses == ["queued", "retry_scheduled"]
+
+
+def test_retry_send_failure_reschedules_with_backoff(pipeline_env, monkeypatch):
+    from app import telnyx_client
+    from app.db import get_sessionmaker
+    from app.models import OutboundFax
+    from app.worker import delivery
+
+    monkeypatch.setattr(
+        telnyx_client,
+        "send_fax",
+        lambda *a, **k: (_ for _ in ()).throw(httpx.ConnectError("telnyx down")),
+    )
+    with get_sessionmaker()() as session:
+        session.add(
+            OutboundFax(
+                fax_id="flaky-1",
+                to_number="+15552223333",
+                media_url="https://faxbot.test/media/reply_f.pdf",
+                attempts=1,
+                status="retry_scheduled",
+                next_retry_at=datetime.now(UTC) - timedelta(seconds=5),
+            )
+        )
+        session.commit()
+
+    assert delivery.process_retries() == 0
+    (fax,) = _get_all(OutboundFax)
+    # The attempt was spent, and the row backed off into the future —
+    # an immediate second poll must not hot-loop another send.
+    assert fax.status == "retry_scheduled"
+    assert fax.attempts == 2
+    assert fax.next_retry_at > datetime.now(UTC).replace(tzinfo=fax.next_retry_at.tzinfo)
+    assert delivery.process_retries() == 0
+
+
+def test_stale_retrying_row_is_recovered(pipeline_env):
+    from app.db import get_sessionmaker
+    from app.models import OutboundFax
+    from app.worker import delivery
+
+    with get_sessionmaker()() as session:
+        session.add(
+            OutboundFax(
+                fax_id="stuck-1",
+                to_number="+15552224444",
+                media_url="https://faxbot.test/media/reply_s.pdf",
+                attempts=2,
+                status="retrying",
+            )
+        )
+        session.add(
+            OutboundFax(
+                fax_id="stuck-2",
+                to_number="+15552225555",
+                media_url="https://faxbot.test/media/reply_t.pdf",
+                attempts=4,  # beyond initial + 3 backoffs: no sends left
+                status="retrying",
+            )
+        )
+        session.commit()
+        from sqlalchemy import select
+
+        for fax in session.scalars(select(OutboundFax)).all():
+            fax.updated_at = datetime.now(UTC) - timedelta(hours=1)
+        session.commit()
+
+    delivery.process_retries()
+    # Key by destination: the recovered row's fax_id rotates on the resend.
+    faxes = {f.to_number: f for f in _get_all(OutboundFax)}
+    # Crash-with-attempts-left: requeued (the send then happens on this same
+    # pass, since its next_retry_at is now); crash-when-exhausted: given up.
+    assert faxes["+15552224444"].status == "queued"
+    assert faxes["+15552224444"].attempts == 3  # recovery consumed one attempt
+    assert faxes["+15552225555"].status == "failed_permanent"
+
+
+def test_reply_to_fax_id_unique_constraint(pipeline_env):
+    from sqlalchemy.exc import IntegrityError
+
+    from app.db import get_sessionmaker
+    from app.models import OutboundFax
+
+    with get_sessionmaker()() as session:
+        session.add(
+            OutboundFax(fax_id="dup-a", to_number="+1", media_url="m", reply_to_fax_id="in-1")
+        )
+        session.commit()
+        session.add(
+            OutboundFax(fax_id="dup-b", to_number="+1", media_url="m", reply_to_fax_id="in-1")
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
