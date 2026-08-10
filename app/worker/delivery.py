@@ -23,8 +23,12 @@ def send_reply(
     thread_id: int | None,
     reply_to_fax_id: str,
 ) -> OutboundFax:
-    # Idempotent per inbound fax: a reprocessed pipeline reuses the existing
-    # row, and if a prior attempt already reached Telnyx it does not resend.
+    # Bounded at-least-once, not exactly-once: a reprocessed pipeline reuses
+    # the existing row, and a recorded prior send is never repeated — but a
+    # crash between Telnyx accepting and the commit below can still yield one
+    # duplicate (capped by max_process_attempts). Telnyx's fax-create API has
+    # no idempotency key to close that window; a duplicate letter beats a
+    # lost one.
     outbound = session.scalar(
         select(OutboundFax).where(OutboundFax.reply_to_fax_id == reply_to_fax_id)
     )
