@@ -16,6 +16,9 @@
              padding: 22px 16px; box-shadow: 4px 4px 0 rgba(0,0,0,.25); }
     header h1 { font-size: clamp(16px, 3.5vw, 24px); letter-spacing: 4px; }
     header .ref { margin-top: 8px; font-size: 12px; letter-spacing: 2px; }
+    header .sample { display: inline-block; margin-top: 12px; border: 1px solid #1a1a1a;
+                     padding: 4px 8px; font-size: 10px; letter-spacing: 2px;
+                     transform: rotate(-1deg); }
     a.back { display: inline-block; margin: 18px 0 4px; color: inherit; font-size: 12px;
              letter-spacing: 1px; }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; }
@@ -35,6 +38,7 @@
   <header>
     <h1>FAX-BOT INDUSTRIES</h1>
     <div class="ref">PUBLIC GALLERY — CORRESPONDENCE {{ ref }}, EXCHANGE NO. {{ exchange_no }}</div>
+    {% if is_sample %}<div class="sample">FICTIONAL HOUSE SAMPLE</div>{% endif %}
   </header>
   <a class="back" href="/gallery">&larr; RETURN TO THE GALLERY</a>
   <div class="cols">
@@ -56,7 +60,8 @@
     </div>
   </div>
   <footer>
-    PUBLISHED WITH THE CORRESPONDENT'S WRITTEN CONSENT.<br>
+    {% if is_sample %}FICTIONAL PRE-LAUNCH DEMONSTRATION — NO PRIVATE CORRESPONDENCE.<br>
+    {% else %}PUBLISHED WITH THE CORRESPONDENT'S WRITTEN CONSENT.<br>{% endif %}
     JOIN THE CORRESPONDENCE: FAX {{ fax_number_pretty }}.
     THE DELAY IS THE SERVICE.<br>
     <a href="/privacy">PRIVACY POLICY</a>

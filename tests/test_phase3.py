@@ -119,6 +119,45 @@ def test_opt_in_moderation_and_publication(client):
     assert client.post(f"/admin/gallery/{item_id}/approve", headers=ADMIN).status_code == 404
 
 
+def test_house_sample_seeding_is_labeled_idempotent_and_removable(client, monkeypatch):
+    from sqlalchemy import select
+
+    from app import gallery_seeds
+    from app.config import get_settings
+    from app.db import get_sessionmaker
+    from app.models import GalleryItem, OutboundFax
+
+    def render_inbound_stub(_html, out_path):
+        doc = pymupdf.open()
+        doc.new_page(width=612, height=792).insert_text((72, 100), "GALLERY: YES [X]")
+        doc.save(out_path)
+        doc.close()
+
+    monkeypatch.setattr(gallery_seeds, "_render_inbound_pdf", render_inbound_stub)
+
+    assert gallery_seeds.seed_gallery_samples(get_settings()) == 2
+    assert gallery_seeds.seed_gallery_samples(get_settings()) == 0
+
+    with get_sessionmaker()() as session:
+        items = session.scalars(select(GalleryItem).order_by(GalleryItem.id)).all()
+        assert len(items) == 2
+        assert all(item.status == "approved" and item.is_sample for item in items)
+        assert session.scalars(select(OutboundFax)).all() == []
+        first_id, first_slug = items[0].id, items[0].slug
+
+    index = client.get("/gallery")
+    assert index.text.count("HOUSE SAMPLE") >= 2
+    item_page = client.get(f"/gallery/{first_slug}")
+    assert "FICTIONAL HOUSE SAMPLE" in item_page.text
+    assert "NO PRIVATE CORRESPONDENCE" in item_page.text
+
+    assert client.post(f"/admin/gallery/{first_id}/unpublish", headers=ADMIN).json() == {
+        "status": "removed"
+    }
+    assert gallery_seeds.seed_gallery_samples(get_settings()) == 0
+    assert client.get(f"/gallery/{first_slug}").status_code == 404
+
+
 def test_reject_never_publishes(client):
     _run_exchange(client, fax_id="g2")
     pending = client.get("/admin/gallery", headers=ADMIN).json()["pending"]

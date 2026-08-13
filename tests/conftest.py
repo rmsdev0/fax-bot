@@ -16,6 +16,7 @@ FAKE_ENV = {
     "TEST_FAX_NUMBER": "+15550005678",
     "ANTHROPIC_API_KEY": "test-anthropic-key",
     "ADMIN_TOKEN": "test-admin-token",
+    "GALLERY_SEED_SAMPLES": "false",
     "SENTRY_DSN": "",
     "PUBLIC_BASE_URL": "https://faxbot.test",
 }

@@ -104,6 +104,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "TELNYX_CONNECTION_ID", value = var.telnyx_connection_id },
         { name = "FAX_BOT_NUMBER", value = var.fax_bot_number },
         { name = "TEST_FAX_NUMBER", value = var.test_fax_number },
+        { name = "GALLERY_SEED_SAMPLES", value = "true" },
       ]
       secrets = concat(
         [for s in local.app_secret_names : {

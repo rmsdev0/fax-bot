@@ -63,6 +63,10 @@ async def lifespan(app: FastAPI):
     settings.gallery_dir.mkdir(parents=True, exist_ok=True)
     ensure_media_files(settings.media_dir)
     init_db()
+    if settings.gallery_seed_samples:
+        from app.gallery_seeds import seed_gallery_samples
+
+        seed_gallery_samples(settings)
     if settings.webhook_verify and not settings.telnyx_public_key.get_secret_value():
         logger.warning(
             "TELNYX_PUBLIC_KEY is empty — all webhooks will be rejected. "
@@ -139,6 +143,7 @@ def gallery_index():
                     "ref": thread.ref_number if thread else "UNFILED",
                     "exchange_no": _exchange_no(session, inbound),
                     "teaser": (inbound.inbound_summary or "CONTENTS ON FILE.")[:160],
+                    "is_sample": item.is_sample,
                     "published": item.published_at.strftime("%d %B %Y").upper()
                     if item.published_at
                     else "",
@@ -171,6 +176,7 @@ def gallery_item(slug: str):
         exchange_no=exchange_no,
         in_pages=item.in_pages,
         tx_pages=item.tx_pages,
+        is_sample=item.is_sample,
         base_url=settings.public_base_url,
         fax_number_pretty=_pretty_fax_number(settings.fax_bot_number),
     )

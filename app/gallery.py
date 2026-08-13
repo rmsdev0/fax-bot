@@ -50,7 +50,9 @@ def approve(session, settings: Settings, item: GalleryItem) -> GalleryItem:
     item.in_pages = in_pages
     item.tx_pages = tx_pages
     item.status = "approved"
-    item.published_at = datetime.now(UTC)
+    # Preserve the original publication date when repairing missing sample
+    # rasters on a later startup.
+    item.published_at = item.published_at or datetime.now(UTC)
     session.commit()
     logger.info(
         "gallery item %s published as /gallery/%s (%d in, %d tx pages)",

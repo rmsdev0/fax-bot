@@ -89,6 +89,8 @@ class GalleryItem(Base):
     # pending -> approved | rejected; approved -> removed (REMOVE request
     # or admin unpublish)
     status: Mapped[str] = mapped_column(String, default="pending", index=True)
+    # Built-in fictional launch material, labeled as such on every public page.
+    is_sample: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     in_pages: Mapped[int] = mapped_column(Integer, default=0)
     tx_pages: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

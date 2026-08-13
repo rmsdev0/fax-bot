@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     admin_token: SecretStr = SecretStr("")
     sentry_dsn: SecretStr = SecretStr("")
     gallery_raster_dpi: int = 120
+    # Publish the two built-in, clearly labeled house samples on startup.
+    # The operation is idempotent and never republishes a removed sample.
+    gallery_seed_samples: bool = False
 
     @property
     def gallery_dir(self) -> Path:

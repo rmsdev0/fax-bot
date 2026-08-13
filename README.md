@@ -91,6 +91,19 @@ tunnel. App secrets live in SSM under `/fax-bot/*`; the moderation token is
 `aws ssm get-parameter --name /fax-bot/ADMIN_TOKEN --with-decryption`.
 Database migrations run automatically when the task starts.
 
+### Launch gallery samples
+
+The AWS task enables `GALLERY_SEED_SAMPLES=true`, which publishes two
+clearly labeled fictional house samples when they are missing. Seeding is
+idempotent, does not call the model or send a fax, and repairs missing gallery
+rasters on restart. An operator-unpublished sample stays unpublished.
+
+To seed another configured environment once, run:
+
+```bash
+uv run python -m scripts.seed_gallery
+```
+
 ## Moderation
 
 Gallery publication is double-gated: the correspondent must draw the checked
