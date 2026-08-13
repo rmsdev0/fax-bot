@@ -47,8 +47,10 @@ variable "task_cpu" {
 }
 
 variable "task_memory" {
-  type    = number
-  default = 1024
+  type = number
+  # Chromium rendering (worker replies, gallery seeding) inside the shared
+  # task OOM-killed the web process at 1024 during launch seeding.
+  default = 2048
 }
 
 locals {
