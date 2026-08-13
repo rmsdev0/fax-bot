@@ -81,6 +81,41 @@ def _run_exchange(client, fax_id="g1"):
 ADMIN = {"x-admin-token": "sekrit"}
 
 
+def test_gallery_seeding_runs_outside_the_asyncio_loop(tmp_path, monkeypatch):
+    import asyncio
+
+    from fastapi.testclient import TestClient
+
+    from app import gallery_seeds
+    from app.config import get_settings
+    from app.db import get_engine, get_sessionmaker
+    from app.main import app
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/startup.db")
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("WEBHOOK_VERIFY", "false")
+    monkeypatch.setenv("GALLERY_SEED_SAMPLES", "true")
+    get_settings.cache_clear()
+    get_engine.cache_clear()
+    get_sessionmaker.cache_clear()
+    seeded = []
+
+    def fake_seed(settings):
+        with pytest.raises(RuntimeError, match="no running event loop"):
+            asyncio.get_running_loop()
+        seeded.append(settings.data_dir)
+
+    monkeypatch.setattr(gallery_seeds, "seed_gallery_samples", fake_seed)
+    try:
+        with TestClient(app) as startup_client:
+            assert startup_client.get("/health").status_code == 200
+        assert seeded == [tmp_path / "data"]
+    finally:
+        get_settings.cache_clear()
+        get_engine.cache_clear()
+        get_sessionmaker.cache_clear()
+
+
 def test_admin_requires_token(client):
     assert client.get("/admin/recent").status_code == 401
     assert client.get("/admin/gallery").status_code == 401

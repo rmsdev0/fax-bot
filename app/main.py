@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -66,7 +67,9 @@ async def lifespan(app: FastAPI):
     if settings.gallery_seed_samples:
         from app.gallery_seeds import seed_gallery_samples
 
-        seed_gallery_samples(settings)
+        # The renderer uses Playwright's synchronous API, which must not run
+        # inside Uvicorn's asyncio loop.
+        await asyncio.to_thread(seed_gallery_samples, settings)
     if settings.webhook_verify and not settings.telnyx_public_key.get_secret_value():
         logger.warning(
             "TELNYX_PUBLIC_KEY is empty — all webhooks will be rejected. "
