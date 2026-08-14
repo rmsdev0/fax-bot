@@ -45,8 +45,9 @@
     RECEIVE A THOUGHTFUL REPLY ON COMPANY LETTERHEAD, SEVERAL MINUTES LATER.
     THE DELAY IS THE SERVICE.<br><br>
     EVERY CORRESPONDENT EXCHANGE BELOW WAS PUBLISHED WITH WRITTEN CONSENT,
-    GIVEN BY CHECKED BOX, AS IS PROPER. ITEMS MARKED HOUSE SAMPLE ARE
-    FICTIONAL PRE-LAUNCH DEMONSTRATIONS. NO FAX MACHINE? MOST EFAX
+    GIVEN BY CHECKED BOX, AS IS PROPER. ITEMS BEARING A HOUSE MARK ORIGINATE
+    FROM THE DIVISION ITSELF, NOT FROM PRIVATE CORRESPONDENCE; FICTIONAL
+    SAMPLES ARE LABELED AS SUCH. NO FAX MACHINE? MOST EFAX
     APPLICATIONS WILL CONNECT YOU. WE DO NOT JUDGE THE METHOD. ONLY THE
     PENMANSHIP.
   </div>
@@ -54,7 +55,7 @@
   <ul class="items">
     {% for item in items %}
     <li><a href="/gallery/{{ item.slug }}">
-      <div class="ref">{{ item.ref }} — EXCHANGE NO. {{ item.exchange_no }}{% if item.is_sample %}<span class="sample">HOUSE SAMPLE</span>{% endif %}</div>
+      <div class="ref">{{ item.ref }} — EXCHANGE NO. {{ item.exchange_no }}{% if item.is_sample %}<span class="sample">{{ item.sample_label }}</span>{% endif %}</div>
       <div class="teaser">{{ item.teaser }}</div>
       <div class="stamp-date">PUBLISHED {{ item.published }}</div>
     </a></li>

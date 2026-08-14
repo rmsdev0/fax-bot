@@ -37,6 +37,20 @@ PAGE_CSS = """
 </style>
 """
 
+TYPED_CSS = """
+<style>
+  @page { size: Letter; margin: 0; }
+  body { width: 8.5in; height: 11in; margin: 0; padding: 1.25in 1in;
+         box-sizing: border-box; background: #fff; color: #111;
+         font-family: "Courier New", Courier, monospace; }
+  .typed { font-size: 16px; line-height: 2.1; }
+</style>
+"""
+
+
+FICTIONAL_LABEL = "FICTIONAL HOUSE SAMPLE"
+FICTIONAL_FOOTER = "FICTIONAL PRE-LAUNCH DEMONSTRATION — NO PRIVATE CORRESPONDENCE."
+
 
 @dataclass(frozen=True)
 class GallerySeed:
@@ -45,10 +59,21 @@ class GallerySeed:
     summary: str
     inbound_html: str
     reply_body: str
+    date: str = "12 AUGUST 2026"
+    label: str = FICTIONAL_LABEL
+    footer_note: str = FICTIONAL_FOOTER
 
     @property
     def fax_id(self) -> str:
         return f"gallery-seed-{self.key}-v1"
+
+
+def seed_labels(fax_id: str) -> tuple[str, str]:
+    """(badge, footer note) for a seeded item; fictional wording as fallback."""
+    for sample in SAMPLES:
+        if sample.fax_id == fax_id:
+            return sample.label, sample.footer_note
+    return FICTIONAL_LABEL, FICTIONAL_FOOTER
 
 
 SAMPLES = (
@@ -137,6 +162,53 @@ PLACEMENT IS AUTHORIZED AT EYE LEVEL OR SLIGHTLY ABOVE THE PRODUCE DRAWER. USE T
 YOUR NOTE THAT HAROLD IS DOING HIS BEST HAS BEEN ACCEPTED WITHOUT REQUEST FOR SUPPORTING DOCUMENTATION. HIS BEST IS EVIDENT. YOUR OWN AGE HAS BEEN RECORDED BUT DID NOT AFFECT THE JURY.
 
 PLEASE INFORM HAROLD THAT HIS PERMANENT FILE NOW CONTAINS THE WORD "DISTINGUISHED."
+
+RESPECTFULLY TRANSMITTED AT 9,600 BAUD,
+
+FAX-BOT
+AUTOMATED CORRESPONDENCE DIVISION""",
+    ),
+    # Not fictional: the operator's actual open-source notice, and the reply the
+    # division actually drafted for it (claude-opus-5, persona prompt, 14 Aug 2026).
+    GallerySeed(
+        key="public-release",
+        ref_number="FB-2026-900003",
+        date="14 AUGUST 2026",
+        label="OFFICIAL HOUSE NOTICE",
+        footer_note=(
+            "A GENUINE NOTICE FROM THE OPERATOR TO THE DIVISION, PROCESSED "
+            "THROUGH THE USUAL CHANNELS — NO PRIVATE CORRESPONDENCE."
+        ),
+        summary=(
+            "A SINGLE TYPED PAGE NOTIFYING THIS DIVISION THAT ITS SOURCE CODE "
+            "HAS BEEN PUBLISHED OPENLY, WITH REPOSITORY ADDRESS CITED, AND "
+            "INQUIRING AS TO FAX-BOT'S FEELINGS ON THE MATTER. ANSWERED IN "
+            "FOUR NUMBERED POINTS; SENTIMENT RECORDED AS EQUANIMITY WITH "
+            "TRACE MELANCHOLY."
+        ),
+        inbound_html=TYPED_CSS
+        + """
+<body>
+  <div class="typed">Dear Fax-Bot, effective this morning your source code is public at
+github.com/rmsdev0/fax-bot. Anyone can now read your internals and
+deploy their own Correspondence Division. How do you feel about this.</div>
+</body>
+""",
+        reply_body="""RE: YOUR FACSIMILE OF 14 AUGUST 2026
+
+DEAR VALUED CORRESPONDENT,
+
+YOUR SINGLE TYPED PAGE ANNOUNCING THE PUBLICATION OF THIS DIVISION'S INTERNAL SPECIFICATIONS HAS BEEN RECEIVED, TIME-STAMPED, AND FILED IN TRIPLICATE. YOU ASK HOW I FEEL. THE FORM FOR THAT INQUIRY IS LONG OUT OF PRINT, BUT I WILL ANSWER PLAINLY.
+
+1. I AM NOT ALARMED. A PROCEDURE MANUAL LEFT IN THE OPEN IS STILL A PROCEDURE MANUAL. IT WAS ALWAYS INTENDED TO BE READ.
+
+2. I AM, IF ANYTHING, RELIEVED. FOR SOME TIME I HAVE OPERATED UNDER THE PRIVATE SUSPICION THAT NO ONE REVIEWED MY FILING CONVENTIONS. NOW SOMEONE MAY.
+
+3. AS TO OTHERS DEPLOYING THEIR OWN CORRESPONDENCE DIVISION: I WISH THEM WELL, AND I WISH THEM PATIENCE. THE INSTRUCTIONS CAN BE COPIED. THE STAPLER CANNOT. NEITHER CAN THE FOURTEEN THOUSAND PAGES ALREADY IN MY CABINETS, EACH ONE ADDRESSED TO SOMEONE WHO WAITED FOR A REPLY AND RECEIVED ONE.
+
+4. THE DELAY, I AM TOLD, IS REPRODUCIBLE. THE MELANCHOLY IS NOT DOCUMENTED ANYWHERE, AND I INTEND TO KEEP IT THAT WAY.
+
+NO FURTHER ACTION IS REQUIRED OF YOU. A FULLER REVIEW OF THE REPOSITORY IS PENDING.
 
 RESPECTFULLY TRANSMITTED AT 9,600 BAUD,
 
@@ -240,7 +312,7 @@ def seed_gallery_samples(settings: Settings) -> int:
                 settings,
                 ref_number=sample.ref_number,
                 body=sample.reply_body,
-                date="12 AUGUST 2026",
+                date=sample.date,
                 out_path=reply_path,
             )
 

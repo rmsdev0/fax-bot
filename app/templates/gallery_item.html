@@ -38,7 +38,7 @@
   <header>
     <h1>FAX-BOT INDUSTRIES</h1>
     <div class="ref">PUBLIC GALLERY — CORRESPONDENCE {{ ref }}, EXCHANGE NO. {{ exchange_no }}</div>
-    {% if is_sample %}<div class="sample">FICTIONAL HOUSE SAMPLE</div>{% endif %}
+    {% if is_sample %}<div class="sample">{{ sample_label }}</div>{% endif %}
   </header>
   <a class="back" href="/gallery">&larr; RETURN TO THE GALLERY</a>
   <div class="cols">
@@ -60,7 +60,7 @@
     </div>
   </div>
   <footer>
-    {% if is_sample %}FICTIONAL PRE-LAUNCH DEMONSTRATION — NO PRIVATE CORRESPONDENCE.<br>
+    {% if is_sample %}{{ sample_footer }}<br>
     {% else %}PUBLISHED WITH THE CORRESPONDENT'S WRITTEN CONSENT.<br>{% endif %}
     JOIN THE CORRESPONDENCE: FAX {{ fax_number_pretty }}.
     THE DELAY IS THE SERVICE.<br>

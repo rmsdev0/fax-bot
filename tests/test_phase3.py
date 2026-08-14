@@ -170,21 +170,27 @@ def test_house_sample_seeding_is_labeled_idempotent_and_removable(client, monkey
 
     monkeypatch.setattr(gallery_seeds, "_render_inbound_pdf", render_inbound_stub)
 
-    assert gallery_seeds.seed_gallery_samples(get_settings()) == 2
+    assert gallery_seeds.seed_gallery_samples(get_settings()) == 3
     assert gallery_seeds.seed_gallery_samples(get_settings()) == 0
 
     with get_sessionmaker()() as session:
         items = session.scalars(select(GalleryItem).order_by(GalleryItem.id)).all()
-        assert len(items) == 2
+        assert len(items) == 3
         assert all(item.status == "approved" and item.is_sample for item in items)
         assert session.scalars(select(OutboundFax)).all() == []
         first_id, first_slug = items[0].id, items[0].slug
+        notice_slug = next(i.slug for i in items if i.slug.startswith("fb-2026-900003"))
 
     index = client.get("/gallery")
     assert index.text.count("HOUSE SAMPLE") >= 2
+    assert "OFFICIAL HOUSE NOTICE" in index.text
     item_page = client.get(f"/gallery/{first_slug}")
     assert "FICTIONAL HOUSE SAMPLE" in item_page.text
     assert "NO PRIVATE CORRESPONDENCE" in item_page.text
+    notice_page = client.get(f"/gallery/{notice_slug}")
+    assert "OFFICIAL HOUSE NOTICE" in notice_page.text
+    assert "FICTIONAL" not in notice_page.text
+    assert "NO PRIVATE CORRESPONDENCE" in notice_page.text
 
     assert client.post(f"/admin/gallery/{first_id}/unpublish", headers=ADMIN).json() == {
         "status": "removed"

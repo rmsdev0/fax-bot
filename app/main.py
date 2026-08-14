@@ -138,6 +138,8 @@ def gallery_index():
             .where(GalleryItem.status == "approved")
             .order_by(GalleryItem.published_at.desc())
         ).all()
+        from app.gallery_seeds import seed_labels
+
         items = []
         for item, inbound, thread in rows:
             items.append(
@@ -147,6 +149,7 @@ def gallery_index():
                     "exchange_no": _exchange_no(session, inbound),
                     "teaser": (inbound.inbound_summary or "CONTENTS ON FILE.")[:160],
                     "is_sample": item.is_sample,
+                    "sample_label": seed_labels(inbound.fax_id)[0] if item.is_sample else "",
                     "published": item.published_at.strftime("%d %B %Y").upper()
                     if item.published_at
                     else "",
@@ -173,6 +176,9 @@ def gallery_item(slug: str):
         inbound = session.get(InboundFax, item.inbound_fax_id)
         thread = session.get(Thread, item.thread_id) if item.thread_id else None
         exchange_no = _exchange_no(session, inbound)
+    from app.gallery_seeds import seed_labels
+
+    sample_label, sample_footer = seed_labels(inbound.fax_id) if item.is_sample else ("", "")
     html = _templates.get_template("gallery_item.html").render(
         slug=slug,
         ref=thread.ref_number if thread else "UNFILED",
@@ -180,6 +186,8 @@ def gallery_item(slug: str):
         in_pages=item.in_pages,
         tx_pages=item.tx_pages,
         is_sample=item.is_sample,
+        sample_label=sample_label,
+        sample_footer=sample_footer,
         base_url=settings.public_base_url,
         fax_number_pretty=_pretty_fax_number(settings.fax_bot_number),
     )
